@@ -8,6 +8,8 @@ for extracurricular activities at Mergington High School.
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse
+from fastapi import Request
+import requests
 import os
 from pathlib import Path
 
@@ -38,6 +40,30 @@ activities = {
         "schedule": "Mondays, Wednesdays, Fridays, 2:00 PM - 3:00 PM",
         "max_participants": 30,
         "participants": ["john@mergington.edu", "olivia@mergington.edu"]
+    },
+    "Robotics Club": {
+        "description": "Build and program robots, participate in competitions",
+        "schedule": "Wednesdays, 4:00 PM - 5:30 PM",
+        "max_participants": 15,
+        "participants": []
+    },
+    "Debate Club": {
+        "description": "Practice public speaking and debate skills",
+        "schedule": "Thursdays, 3:30 PM - 5:00 PM",
+        "max_participants": 20,
+        "participants": []
+    },
+    "Math Club": {
+        "description": "Explore advanced math topics and compete in math contests",
+        "schedule": "Mondays, 3:30 PM - 4:30 PM",
+        "max_participants": 18,
+        "participants": []
+    },
+    "Environmental Club": {
+        "description": "Promote sustainability and environmental awareness",
+        "schedule": "Fridays, 2:00 PM - 3:00 PM",
+        "max_participants": 16,
+        "participants": []
     }
 }
 
@@ -53,11 +79,29 @@ def get_activities():
 
 
 @app.post("/activities/{activity_name}/signup")
-def signup_for_activity(activity_name: str, email: str):
-    """Sign up a student for an activity"""
+async def signup_for_activity(activity_name: str, email: str, request: Request):
+    """Sign up a student for an activity with reCAPTCHA verification"""
     # Validate activity exists
     if activity_name not in activities:
         raise HTTPException(status_code=404, detail="Activity not found")
+
+    # Parse JSON body for reCAPTCHA token
+    data = await request.json()
+    recaptcha_token = data.get("recaptcha_token")
+    if not recaptcha_token:
+        raise HTTPException(status_code=400, detail="Missing reCAPTCHA token")
+
+    # Verify reCAPTCHA token with Google
+    recaptcha_secret = "6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe"  # Demo secret key
+    verify_url = "https://www.google.com/recaptcha/api/siteverify"
+    payload = {
+        "secret": recaptcha_secret,
+        "response": recaptcha_token
+    }
+    response = requests.post(verify_url, data=payload)
+    result = response.json()
+    if not result.get("success"):
+        raise HTTPException(status_code=400, detail="Invalid reCAPTCHA. Please try again.")
 
     # Get the specific activity
     activity = activities[activity_name]
