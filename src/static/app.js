@@ -7,11 +7,14 @@ document.addEventListener("DOMContentLoaded", () => {
   // Function to fetch activities from API
   async function fetchActivities() {
     try {
-      const response = await fetch("/activities");
+      // request fresh data to avoid stale cache
+      const response = await fetch("/activities", { cache: "no-store" });
       const activities = await response.json();
 
       // Clear loading message
       activitiesList.innerHTML = "";
+      // remove existing options to prevent duplicates
+      activitySelect.innerHTML = '<option value="">-- Select an activity --</option>';
 
       // Populate activities list
       Object.entries(activities).forEach(([name, details]) => {
@@ -20,11 +23,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const spotsLeft = details.max_participants - details.participants.length;
 
-        // Build participants markup
+        // Build participants markup with delete icons
         let participantsMarkup = "<p><strong>Participants:</strong></p>";
         if (details.participants && details.participants.length > 0) {
           participantsMarkup += `<ul class="participants-list">
-            ${details.participants.map(p => `<li>${p}</li>`).join("\n            ")}
+            ${details.participants.map(p => `<li>${p} <span class="remove-participant" data-activity="${name}" data-email="${p}">&times;</span></li>`).join("\n            ")}
           </ul>`;
         } else {
           participantsMarkup += `<p class="no-participants">No participants yet</p>`;
@@ -105,6 +108,31 @@ document.addEventListener("DOMContentLoaded", () => {
       messageDiv.className = "error";
       messageDiv.classList.remove("hidden");
       console.error("Error signing up:", error);
+    }
+  });
+
+  // Attach listener for delete icons (event delegation)
+  activitiesList.addEventListener("click", async (e) => {
+    if (e.target.classList.contains("remove-participant")) {
+      const activity = e.target.dataset.activity;
+      const email = e.target.dataset.email;
+
+      if (confirm(`Remove ${email} from ${activity}?`)) {
+        try {
+          const resp = await fetch(
+            `/activities/${encodeURIComponent(activity)}/participants?email=${encodeURIComponent(email)}`,
+            { method: "DELETE" }
+          );
+          if (resp.ok) {
+            fetchActivities();
+          } else {
+            const err = await resp.json();
+            console.error("Failed to remove participant:", err);
+          }
+        } catch (err) {
+          console.error("Error removing participant:", err);
+        }
+      }
     }
   });
 

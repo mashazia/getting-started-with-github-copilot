@@ -76,12 +76,26 @@ section h3 {
 
 /* participants list styling */
 .participants-list {
-  list-style-type: disc;
-  margin-left: 20px;
+  list-style-type: none; /* hide bullets */
+  margin-left: 0;
   margin-bottom: 8px;
+  padding-left: 0;
 }
 .participants-list li {
   margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+}
+
+/* delete icon */
+.remove-participant {
+  margin-left: 8px;
+  color: #c62828;
+  cursor: pointer;
+  font-weight: bold;
+}
+.remove-participant:hover {
+  color: #b71c1c;
 }
 
 .no-participants {
